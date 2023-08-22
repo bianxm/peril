@@ -2,26 +2,26 @@ package ws
 
 import (
 	"jeopardy/internal/peril"
+	"log"
 
 	"github.com/fasthttp/websocket"
 )
 
 type Client struct {
-	Conn        *websocket.Conn
-	ID          int
-	RoomID      string
-	Username    string
-	Message     chan *Message
-	Type        clientType
-	PlayerState *peril.PlayerState
+	Conn     *websocket.Conn
+	ID       int
+	RoomID   string
+	Username string
+	Message  chan *peril.Game
+	// Type        clientType
 }
 
-type clientType int
+// type clientType int
 
-const (
-	screen clientType = iota
-	player
-)
+// const (
+// 	screen clientType = iota
+// 	player
+// )
 
 type Message interface {
 }
@@ -38,6 +38,7 @@ func (c *Client) writeMessage() {
 			return
 		}
 
+		// you get a certain Game State
 		// decide here what to actually write, based on game state and client player state / screen status
 
 		c.Conn.WriteJSON(message)
@@ -52,17 +53,16 @@ func (c *Client) readMessage(hub *Hub) {
 	}()
 
 	for {
-		// _, m, err := c.Conn.ReadMessage()
-		// if err != nil {
-		// 	if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-		// 		log.Printf("error: %v\n", err)
-		// 	}
-		// 	break
-		// }
+		_, m, err := c.Conn.ReadMessage()
+		if err != nil {
+			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+				log.Printf("error: %v\n", err)
+			}
+			break
+		}
 
-		// change game state here
+		hub.Rooms[c.RoomID].GameState.UpdateGame(c.ID, m)
 
-		// hub.Broadcast <- <new game state>
-
+		hub.Broadcast <- hub.Rooms[c.RoomID]
 	}
 }

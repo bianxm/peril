@@ -30,7 +30,7 @@ type Hub struct {
 	Rooms      map[string]*Room
 	Register   chan *Client
 	Unregister chan *Client
-	Broadcast  chan *peril.Game
+	Broadcast  chan *Room
 	Close      chan *Room
 }
 
@@ -39,7 +39,7 @@ func NewHub() *Hub {
 		Rooms:      make(map[string]*Room),
 		Register:   make(chan *Client),
 		Unregister: make(chan *Client),
-		Broadcast:  make(chan *peril.Game),
+		Broadcast:  make(chan *Room),
 	}
 }
 
@@ -63,14 +63,18 @@ func (h *Hub) Run() {
 					close(cl.Message)
 				}
 			}
-			// case r := <-h.Close:
-			// r.ID
-			// close this room: delete from hub
+		// case r := <-h.Close:
+		// this will come from the screen, after game is done
+		// r.ID
+		// close this room: delete from hub
 
-			// case m := <-h.Broadcast:
-			// if m's room id is an actual room id
-			// go through all the players and the screen of the room
-			// and send the desired message
+		case m := <-h.Broadcast:
+			for _, cl := range m.Players {
+				cl.Message <- m.GameState
+			}
+
+			// send to screen as well!
+			m.Screen.Message <- m.GameState
 		}
 	}
 }

@@ -3,7 +3,6 @@ package ws
 import (
 	"encoding/json"
 	"fmt"
-	"jeopardy/internal/peril"
 	"jeopardy/util"
 	"log"
 	"net/http"
@@ -54,6 +53,13 @@ func (h *Handler) CreateRoom(w http.ResponseWriter, r *http.Request) {
 	// send the room name
 	conn.WriteMessage(websocket.TextMessage, []byte(h.hub.Rooms[roomId].ID))
 
+	// spin up goroutine to write messages to this client (screen)
+	// game state will be written to screen
+	// and start signal will be sent by screen
+	// also maybe pause?
+	go h.hub.Rooms[roomId].Screen.writeMessage()
+	go h.hub.Rooms[roomId].Screen.readMessage(h.hub)
+
 }
 
 func (h *Handler) JoinRoom(w http.ResponseWriter, r *http.Request) {
@@ -87,17 +93,18 @@ func (h *Handler) JoinRoom(w http.ResponseWriter, r *http.Request) {
 		Conn:   conn,
 		ID:     id,
 		RoomID: roomId,
-		PlayerState: &peril.PlayerState{
-			Score: 0,
-			Role:  peril.Waiter,
-			ID:    id,
-		},
 	}
 
 	h.hub.Register <- cl
 	room.Mutex.Unlock()
 
 	conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("Connected to %s", h.hub.Rooms[roomId].ID)))
+
+	// spin up two goroutines
+	// one will listen for messages from this client
+	// and another will write messages to this client
+	go cl.readMessage(h.hub)
+	go cl.writeMessage()
 
 	// this will be in a message! there will already be a conn!
 	// Let user pick their username
