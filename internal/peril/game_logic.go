@@ -13,15 +13,13 @@ const (
 )
 
 type Game struct {
-	Board        map[int]map[int]string
-	Players      []string
-	PlayerStates map[int]*PlayerState
-	GameStatus   GameStatus
+	Board        map[int]map[int]string `json:"board"`
+	PlayerStates map[int]*PlayerState   `json:"player_states"`
+	GameStatus   GameStatus             `json:"game_status"`
+	CurrQ        [2]int                 `json:"current_question"`
 	Mutex        sync.Mutex
-	currQ        [2]int
 	lastChooser  int
-	// add: current question
-	// Scores    map[string]int
+	// Players      []string
 }
 
 func NewGame() *Game {
@@ -29,7 +27,7 @@ func NewGame() *Game {
 		Board:        make(map[int]map[int]string),
 		GameStatus:   Pregame,
 		PlayerStates: make(map[int]*PlayerState),
-		currQ:        [2]int{-1, -1},
+		CurrQ:        [2]int{-1, -1},
 	}
 }
 
@@ -91,7 +89,7 @@ func (g *Game) UpdateGame(playerID int, m []byte) {
 				g.GameStatus = Choosing
 				for _, pl := range g.PlayerStates {
 					if pl.Role == Answerer {
-						pl.Score += g.currQ[1] * 100
+						pl.Score += g.CurrQ[1] * 100
 						pl.Role = Chooser
 					} else {
 						pl.Role = Waiter
@@ -103,7 +101,7 @@ func (g *Game) UpdateGame(playerID int, m []byte) {
 				g.GameStatus = Buzzing
 				for _, pl := range g.PlayerStates {
 					if pl.Role == Answerer {
-						pl.Score -= g.currQ[1] * 100
+						pl.Score -= g.CurrQ[1] * 100
 						pl.Role = Waiter
 					}
 					if pl.Role == Buzzer {

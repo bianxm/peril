@@ -40,6 +40,10 @@ func (c *Client) writeMessage() {
 
 		// you get a certain Game State
 		// decide here what to actually write, based on game state and client player state / screen status
+		// actually, all they need to know is their role...
+		// EXCEPT WHEN IT'S PREGAME. need to figure out pregame
+		// actually, when it's pregame, they just need to know if their input is ok
+		// screen needs to know entire game state
 
 		c.Conn.WriteJSON(message)
 	}
@@ -62,7 +66,6 @@ func (c *Client) readMessage(hub *Hub) {
 		}
 
 		hub.Rooms[c.RoomID].GameState.UpdateGame(c.ID, m)
-
 		hub.Broadcast <- hub.Rooms[c.RoomID]
 	}
 }
